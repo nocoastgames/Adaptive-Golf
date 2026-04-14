@@ -4,6 +4,7 @@ import { audio } from './audio';
 export type GameState = 
   | 'title'
   | 'setup_players'
+  | 'setup_live_championship'
   | 'setup_names'
   | 'bracket_setup'
   | 'bracket_view'
@@ -24,6 +25,7 @@ export interface Player {
   score: number;
   name: string;
   team: string;
+  teamId?: string;
 }
 
 export interface TournamentTeam {
@@ -50,6 +52,7 @@ export interface Tournament {
   currentMatchupId: string | null;
   currentTeamId: string | null;
   isNonRanked: boolean;
+  isLiveChampionship?: boolean;
 }
 
 export interface CourseDef {
@@ -92,6 +95,9 @@ interface StoreState {
   updateTournamentTeam: (id: string, name: string) => void;
   startTournamentTeamRound: (matchupId: string, teamId: string) => void;
   saveTeamScore: (averageScore: number) => void;
+  startLiveChampionship: (matchupId: string) => void;
+  setupLiveChampionship: (t1Count: number, t2Count: number) => void;
+  saveLiveChampionshipScore: () => void;
   discardTournamentMatchup: () => void;
   importTournament: (json: string) => void;
   exportTournament: () => void;
@@ -266,6 +272,86 @@ export const useStore = create<StoreState>((set, get) => ({
     });
   },
 
+  startLiveChampionship: (matchupId) => {
+    set((state) => {
+      if (!state.tournament) return state;
+      return {
+        tournament: { ...state.tournament, currentMatchupId: matchupId, currentTeamId: null, isLiveChampionship: true, isNonRanked: false },
+        gameState: 'setup_live_championship'
+      };
+    });
+  },
+
+  setupLiveChampionship: (t1Count, t2Count) => {
+    set((state) => {
+      const t = state.tournament;
+      if (!t || !t.currentMatchupId) return state;
+      const match = t.matchups[t.currentMatchupId];
+      const t1 = t.teams[match.team1Id!];
+      const t2 = t.teams[match.team2Id!];
+
+      const newPlayers: Player[] = [];
+      let idCounter = 0;
+      for (let i = 0; i < t1Count; i++) {
+        newPlayers.push({
+          id: idCounter,
+          color: PLAYER_COLORS[idCounter % PLAYER_COLORS.length],
+          name: t1Count === 1 ? t1.name : `${t1.name} P${i + 1}`,
+          team: t1.name,
+          teamId: t1.id,
+          strokes: 0,
+          score: 0
+        });
+        idCounter++;
+      }
+      for (let i = 0; i < t2Count; i++) {
+        newPlayers.push({
+          id: idCounter,
+          color: PLAYER_COLORS[idCounter % PLAYER_COLORS.length],
+          name: t2Count === 1 ? t2.name : `${t2.name} P${i + 1}`,
+          team: t2.name,
+          teamId: t2.id,
+          strokes: 0,
+          score: 0
+        });
+        idCounter++;
+      }
+
+      return {
+        players: newPlayers,
+        gameState: 'setup_names'
+      };
+    });
+  },
+
+  saveLiveChampionshipScore: () => {
+    set((state) => {
+      const t = state.tournament;
+      if (!t || !t.currentMatchupId) return state;
+      const match = t.matchups[t.currentMatchupId];
+
+      const t1Players = state.players.filter(p => p.teamId === match.team1Id);
+      const t2Players = state.players.filter(p => p.teamId === match.team2Id);
+
+      const t1Avg = t1Players.length > 0 ? t1Players.reduce((sum, p) => sum + p.score, 0) / t1Players.length : 0;
+      const t2Avg = t2Players.length > 0 ? t2Players.reduce((sum, p) => sum + p.score, 0) / t2Players.length : 0;
+
+      const newMatchups = { ...t.matchups };
+      const currentMatch = { ...newMatchups[t.currentMatchupId] };
+
+      currentMatch.team1Score = t1Avg;
+      currentMatch.team2Score = t2Avg;
+      currentMatch.winnerId = t1Avg <= t2Avg ? currentMatch.team1Id : currentMatch.team2Id;
+
+      newMatchups[t.currentMatchupId] = currentMatch;
+
+      return {
+        tournament: { ...t, matchups: newMatchups, currentMatchupId: null, isLiveChampionship: false },
+        gameState: 'bracket_view'
+      };
+    });
+  },
+
   discardTournamentMatchup: () => {
     set((state) => {
       if (!state.tournament) return state;
@@ -301,7 +387,7 @@ export const useStore = create<StoreState>((set, get) => ({
     set((state) => {
       if (!state.tournament) return state;
       return {
-        tournament: { ...state.tournament, currentMatchupId: null, currentTeamId: null, isNonRanked: true },
+        tournament: { ...state.tournament, currentMatchupId: null, currentTeamId: null, isNonRanked: true, isLiveChampionship: false },
         gameState: 'setup_players'
       };
     });
@@ -321,6 +407,7 @@ export const useStore = create<StoreState>((set, get) => ({
       color: PLAYER_COLORS[i],
       name: numPlayers === 1 ? teamName : `${teamName} P${i + 1}`,
       team: teamName,
+      teamId: t && t.currentTeamId && !t.isNonRanked ? t.currentTeamId : undefined,
       strokes: 0,
       score: 0,
     }));
@@ -442,6 +529,7 @@ export const useStore = create<StoreState>((set, get) => ({
     scanningOption: 1,
     ballPosition: COURSES[0].startPos,
     strokesThisHole: 0,
+    tournament: null,
   }),
 
   endGame: () => set({

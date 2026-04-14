@@ -4,6 +4,8 @@ import confetti from 'canvas-confetti';
 
 export function UI() {
   const [numTeamsInput, setNumTeamsInput] = useState(8);
+  const [liveT1Count, setLiveT1Count] = useState(1);
+  const [liveT2Count, setLiveT2Count] = useState(1);
   const { 
     gameState, 
     setGameState,
@@ -24,6 +26,9 @@ export function UI() {
     updateTournamentTeam,
     startTournamentTeamRound,
     saveTeamScore,
+    startLiveChampionship,
+    setupLiveChampionship,
+    saveLiveChampionshipScore,
     discardTournamentMatchup,
     importTournament,
     exportTournament,
@@ -32,9 +37,10 @@ export function UI() {
   } = useStore();
 
   const currentPlayer = players[currentPlayerIndex];
-  const course = COURSES[currentCourse];
+  const championshipMatch = tournament ? Object.values(tournament.matchups).find(m => m.nextMatchupId === null) : null;
+  const isChampionshipReady = championshipMatch && championshipMatch.team1Id && championshipMatch.team2Id && !championshipMatch.winnerId;
 
-  // Auto-scanner for player setup
+  const course = COURSES[currentCourse];
   useEffect(() => {
     if (gameState !== 'setup_players') return;
     
@@ -161,6 +167,54 @@ export function UI() {
             </div>
             <div className="mt-12 text-3xl font-bold uppercase text-gray-500 animate-pulse">
               Press switch or click to select
+            </div>
+          </div>
+        )}
+
+        {gameState === 'setup_live_championship' && tournament && tournament.currentMatchupId && (
+          <div className="bg-white border-8 border-black rounded-[3rem] p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] max-w-4xl w-full pointer-events-auto">
+            <h2 className="text-5xl font-black uppercase tracking-wider text-black mb-8 text-center">
+              Live Championship Setup
+            </h2>
+            <div className="flex gap-8 mb-12">
+              <div className="flex-1 bg-gray-100 p-8 rounded-2xl border-4 border-black text-center">
+                <h3 className="text-3xl font-black uppercase mb-6">{tournament.teams[tournament.matchups[tournament.currentMatchupId].team1Id!].name}</h3>
+                <p className="text-xl font-bold mb-4">How many players?</p>
+                <div className="flex gap-4 justify-center">
+                  {[1, 2, 3, 4].map(num => (
+                    <button 
+                      key={num}
+                      onClick={() => setLiveT1Count(num)}
+                      className={`w-16 h-16 rounded-xl border-4 border-black font-black text-2xl transition-all ${liveT1Count === num ? 'bg-[#00FF00] shadow-[inset_4px_4px_0px_0px_rgba(0,0,0,0.2)] translate-y-1' : 'bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1 bg-gray-100 p-8 rounded-2xl border-4 border-black text-center">
+                <h3 className="text-3xl font-black uppercase mb-6">{tournament.teams[tournament.matchups[tournament.currentMatchupId].team2Id!].name}</h3>
+                <p className="text-xl font-bold mb-4">How many players?</p>
+                <div className="flex gap-4 justify-center">
+                  {[1, 2, 3, 4].map(num => (
+                    <button 
+                      key={num}
+                      onClick={() => setLiveT2Count(num)}
+                      className={`w-16 h-16 rounded-xl border-4 border-black font-black text-2xl transition-all ${liveT2Count === num ? 'bg-[#00FF00] shadow-[inset_4px_4px_0px_0px_rgba(0,0,0,0.2)] translate-y-1' : 'bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'}`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="text-center">
+              <button 
+                onClick={() => setupLiveChampionship(liveT1Count, liveT2Count)}
+                className="px-12 py-6 bg-[#00AAFF] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-4xl font-black uppercase tracking-widest hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all text-white"
+              >
+                Next
+              </button>
             </div>
           </div>
         )}
@@ -337,6 +391,19 @@ export function UI() {
             </div>
 
             {/* Bracket Visualization */}
+            {isChampionshipReady && (
+              <div className="bg-[#FFDD00] p-6 rounded-3xl border-4 border-black mb-8 text-center animate-pulse shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <h3 className="text-4xl font-black uppercase mb-4">🏆 Championship Match Ready! 🏆</h3>
+                <p className="text-2xl font-bold mb-6">{tournament.teams[championshipMatch.team1Id!].name} vs {tournament.teams[championshipMatch.team2Id!].name}</p>
+                <button 
+                  onClick={() => startLiveChampionship(championshipMatch.id)}
+                  className="px-8 py-4 bg-[#00FF00] border-4 border-black rounded-xl font-black text-2xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                >
+                  Play Live Championship!
+                </button>
+              </div>
+            )}
+
             <div className="flex gap-8 overflow-x-auto pb-8 mb-8 flex-1">
               {Array.from(new Set(Object.values(tournament.matchups).map(m => m.round))).sort().map(r => (
                 <div key={r} className="flex flex-col gap-4 min-w-[250px] justify-around">
@@ -493,7 +560,35 @@ export function UI() {
             </div>
             
             {/* Tournament Matchup Resolution */}
-            {tournament && !tournament.isNonRanked && tournament.currentMatchupId && tournament.currentTeamId ? (
+            {tournament && tournament.isLiveChampionship && tournament.currentMatchupId ? (
+              <div className="bg-[#FFDD00] p-8 rounded-2xl border-4 border-black mb-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <h3 className="text-4xl font-black uppercase mb-6">🏆 Live Championship Complete! 🏆</h3>
+                <div className="flex justify-around mb-8">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{tournament.teams[tournament.matchups[tournament.currentMatchupId].team1Id!].name}</p>
+                    <p className="text-3xl font-black">Avg: {(players.filter(p => p.teamId === tournament.matchups[tournament.currentMatchupId!].team1Id).reduce((sum, p) => sum + p.score, 0) / Math.max(1, players.filter(p => p.teamId === tournament.matchups[tournament.currentMatchupId!].team1Id).length)).toFixed(1)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{tournament.teams[tournament.matchups[tournament.currentMatchupId].team2Id!].name}</p>
+                    <p className="text-3xl font-black">Avg: {(players.filter(p => p.teamId === tournament.matchups[tournament.currentMatchupId!].team2Id).reduce((sum, p) => sum + p.score, 0) / Math.max(1, players.filter(p => p.teamId === tournament.matchups[tournament.currentMatchupId!].team2Id).length)).toFixed(1)}</p>
+                  </div>
+                </div>
+                <div className="flex gap-4 justify-center">
+                  <button 
+                    onClick={saveLiveChampionshipScore}
+                    className="px-8 py-4 bg-[#00FF00] border-4 border-black rounded-xl font-black text-2xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  >
+                    Save Championship Results
+                  </button>
+                  <button 
+                    onClick={discardTournamentMatchup}
+                    className="px-6 py-4 bg-[#FF0055] text-white border-4 border-black rounded-xl font-black text-xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  >
+                    Discard Results
+                  </button>
+                </div>
+              </div>
+            ) : tournament && !tournament.isNonRanked && tournament.currentMatchupId && tournament.currentTeamId ? (
               <div className="bg-gray-100 p-8 rounded-2xl border-4 border-black mb-8">
                 <h3 className="text-3xl font-black uppercase mb-6">Tournament Round Complete</h3>
                 <p className="text-2xl font-bold mb-6">Team Average Score: {(players.length > 0 ? players.reduce((sum, p) => sum + p.score, 0) / players.length : 0).toFixed(1)}</p>
