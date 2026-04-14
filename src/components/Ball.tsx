@@ -16,7 +16,8 @@ export function Ball() {
     setAimAngle,
     powerLevel,
     setPowerLevel,
-    ballStopped
+    ballStopped,
+    gameSpeed
   } = useStore();
 
   const currentPlayer = players[currentPlayerIndex];
@@ -134,7 +135,7 @@ export function Ball() {
       const baseAngle = Math.atan2(dx, -dz); // Angle to hole
 
       // Sweep aim angle around the base angle (180 degree sweep)
-      const speed = 1.5; // radians per second
+      const speed = 1.5 * gameSpeed; // radians per second
       let newAngle = aimAngle + speed * delta * aimDirection.current;
       
       const maxAngle = baseAngle + Math.PI / 2;
@@ -158,7 +159,7 @@ export function Ball() {
 
     if (gameState === 'power') {
       // Sweep power between 0 and 100
-      const speed = 150; // percent per second
+      const speed = 150 * gameSpeed; // percent per second
       let newPower = powerLevel + speed * delta * powerDirection.current;
       
       if (newPower > 100) {

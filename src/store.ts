@@ -5,6 +5,8 @@ export type GameState =
   | 'title'
   | 'setup_players'
   | 'setup_names'
+  | 'bracket_setup'
+  | 'bracket_view'
   | 'course_intro'
   | 'player_turn_start'
   | 'aiming'
@@ -22,6 +24,19 @@ export interface Player {
   score: number;
   name: string;
   team: string;
+}
+
+export interface Matchup {
+  id: string;
+  player1Id: number | null;
+  player2Id: number | null;
+  winnerId: number | null;
+  nextMatchupId: string | null;
+}
+
+export interface Bracket {
+  matchups: Matchup[];
+  currentMatchupId: string | null;
 }
 
 export interface CourseDef {
@@ -45,16 +60,20 @@ interface StoreState {
   currentCourse: number;
   currentPlayerIndex: number;
   scanningOption: number; // For single switch scanning
+  gameSpeed: number; // For slowing down aiming/power sweep
   aimAngle: number;
   powerLevel: number;
   ballPosition: [number, number, number];
   strokesThisHole: number;
+  bracket: Bracket | null;
   
   // Actions
   setGameState: (state: GameState) => void;
   setScanningOption: (opt: number) => void;
+  setGameSpeed: (speed: number) => void;
   setupGame: (numPlayers: number) => void;
   updatePlayer: (index: number, updates: Partial<Player>) => void;
+  setBracket: (bracket: Bracket | null) => void;
   startGame: () => void;
   nextPlayer: () => void;
   setAimAngle: (angle: number) => void;
@@ -69,8 +88,8 @@ interface StoreState {
   exportCSV: () => void;
 }
 
-const PLAYER_COLORS = ['#FF0055', '#00AAFF', '#00FF00', '#FFDD00', '#9900FF'];
-const PLAYER_NAMES = ['Red', 'Blue', 'Green', 'Yellow', 'Purple'];
+const PLAYER_COLORS = ['#FF0055', '#00AAFF', '#00FF00', '#FFDD00', '#9900FF', '#FF8800', '#00FFCC', '#FF00AA'];
+const PLAYER_NAMES = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Cyan', 'Pink'];
 
 export const useStore = create<StoreState>((set, get) => ({
   gameState: 'title',
@@ -78,13 +97,17 @@ export const useStore = create<StoreState>((set, get) => ({
   currentCourse: 0,
   currentPlayerIndex: 0,
   scanningOption: 1,
+  gameSpeed: 1.0,
   aimAngle: 0,
   powerLevel: 0,
   ballPosition: COURSES[0].startPos,
   strokesThisHole: 0,
+  bracket: null,
 
   setGameState: (state) => set({ gameState: state }),
   setScanningOption: (opt) => set({ scanningOption: opt }),
+  setGameSpeed: (speed) => set({ gameSpeed: speed }),
+  setBracket: (bracket) => set({ bracket }),
   
   setupGame: (numPlayers) => {
     const newPlayers = Array.from({ length: numPlayers }).map((_, i) => ({

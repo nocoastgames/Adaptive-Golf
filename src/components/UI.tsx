@@ -5,11 +5,14 @@ import confetti from 'canvas-confetti';
 export function UI() {
   const { 
     gameState, 
+    setGameState,
     players, 
     currentCourse,
     currentPlayerIndex, 
     scanningOption, 
     setScanningOption,
+    gameSpeed,
+    setGameSpeed,
     powerLevel,
     strokesThisHole,
     updatePlayer,
@@ -100,39 +103,53 @@ export function UI() {
       {/* Center Content */}
       <div className="flex-1 flex items-center justify-center pointer-events-auto">
         {gameState === 'title' && (
-          <div className="text-center animate-bounce">
+          <div className="text-center animate-bounce pointer-events-auto">
             <h1 className="text-9xl font-black text-white drop-shadow-[0_10px_0_rgba(0,0,0,1)] uppercase tracking-tighter mb-8" style={{ WebkitTextStroke: '4px black' }}>
               Super Golf!
             </h1>
-            <div className="inline-block px-8 py-4 bg-[#00FF00] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-              <span className="text-4xl font-black uppercase tracking-widest text-black">
-                Press Switch to Start
-              </span>
+            <div className="flex flex-col gap-6 items-center">
+              <button 
+                onClick={() => setGameState('setup_players')}
+                className="inline-block px-12 py-6 bg-[#00FF00] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+              >
+                <span className="text-4xl font-black uppercase tracking-widest text-black">
+                  Start Game
+                </span>
+              </button>
+              <button 
+                onClick={() => setGameState('bracket_setup')}
+                className="inline-block px-8 py-4 bg-[#00AAFF] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+              >
+                <span className="text-2xl font-black uppercase tracking-widest text-white">
+                  Tournament Bracket
+                </span>
+              </button>
             </div>
           </div>
         )}
 
         {gameState === 'setup_players' && (
-          <div className="text-center bg-white border-8 border-black rounded-[3rem] p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
+          <div className="text-center bg-white border-8 border-black rounded-[3rem] p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] pointer-events-auto">
             <h2 className="text-6xl font-black uppercase tracking-wider text-black mb-12">
               How Many Players?
             </h2>
             <div className="flex gap-6 justify-center">
               {[1, 2, 3, 4, 5].map((num) => (
-                <div 
+                <button 
                   key={num}
-                  className={`w-32 h-32 rounded-3xl border-8 flex items-center justify-center transition-all duration-300 ${
+                  onClick={() => useStore.getState().setupGame(num)}
+                  className={`w-32 h-32 rounded-3xl border-8 flex items-center justify-center transition-all duration-300 cursor-pointer ${
                     scanningOption === num 
                       ? 'border-[#FF0055] bg-[#FF0055] text-white scale-110 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]' 
-                      : 'border-black bg-gray-200 text-black scale-100'
+                      : 'border-black bg-gray-200 text-black scale-100 hover:bg-gray-300'
                   }`}
                 >
                   <span className="text-6xl font-black">{num}</span>
-                </div>
+                </button>
               ))}
             </div>
             <div className="mt-12 text-3xl font-bold uppercase text-gray-500 animate-pulse">
-              Press switch to select
+              Press switch or click to select
             </div>
           </div>
         )}
@@ -140,8 +157,30 @@ export function UI() {
         {gameState === 'setup_names' && (
           <div className="bg-white border-8 border-black rounded-[3rem] p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] max-w-4xl w-full max-h-[80vh] overflow-y-auto">
             <h2 className="text-5xl font-black uppercase tracking-wider text-black mb-8 text-center">
-              Teacher Setup: Names & Teams
+              Teacher Setup
             </h2>
+            
+            {/* Speed Setting */}
+            <div className="mb-8 p-6 bg-gray-100 rounded-2xl border-4 border-black">
+              <h3 className="text-2xl font-black uppercase mb-4">Game Speed (Aim & Power)</h3>
+              <div className="flex gap-4">
+                {[0.5, 0.75, 1.0, 1.25, 1.5].map(speed => (
+                  <button
+                    key={speed}
+                    onClick={() => setGameSpeed(speed)}
+                    className={`flex-1 py-3 rounded-xl border-4 font-bold text-xl transition-all ${
+                      gameSpeed === speed 
+                        ? 'border-black bg-[#FFDD00] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] translate-y-[-2px]' 
+                        : 'border-gray-400 bg-white text-gray-500'
+                    }`}
+                  >
+                    {speed}x
+                  </button>
+                ))}
+              </div>
+              <p className="text-gray-500 mt-2 font-bold">Lower speeds give more processing time for switch users.</p>
+            </div>
+
             <div className="flex flex-col gap-6 mb-8">
               {players.map((p, idx) => (
                 <div key={p.id} className="flex gap-4 items-center bg-gray-100 p-4 rounded-2xl border-4 border-black">
@@ -173,6 +212,35 @@ export function UI() {
                 className="px-12 py-6 bg-[#00FF00] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-4xl font-black uppercase tracking-widest hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
               >
                 Start Game
+              </button>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'bracket_setup' && (
+          <div className="bg-white border-8 border-black rounded-[3rem] p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] max-w-4xl w-full max-h-[80vh] overflow-y-auto pointer-events-auto">
+            <h2 className="text-5xl font-black uppercase tracking-wider text-black mb-8 text-center">
+              Tournament Bracket Setup
+            </h2>
+            <div className="p-8 bg-gray-100 rounded-2xl border-4 border-black text-center mb-8">
+              <p className="text-2xl font-bold mb-4">Bracket system is under construction!</p>
+              <p className="text-xl text-gray-600 mb-8">Soon you will be able to build, export, and load tournament brackets here.</p>
+              
+              <div className="flex gap-4 justify-center">
+                <button className="px-6 py-3 bg-gray-300 border-4 border-black rounded-xl font-bold text-xl opacity-50 cursor-not-allowed">
+                  Import Bracket JSON
+                </button>
+                <button className="px-6 py-3 bg-gray-300 border-4 border-black rounded-xl font-bold text-xl opacity-50 cursor-not-allowed">
+                  Create New Bracket
+                </button>
+              </div>
+            </div>
+            <div className="text-center">
+              <button 
+                onClick={() => setGameState('title')}
+                className="px-8 py-4 bg-[#FF0055] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-2xl font-black uppercase tracking-widest hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all text-white"
+              >
+                Back to Menu
               </button>
             </div>
           </div>

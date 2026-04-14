@@ -65,7 +65,8 @@ export function SingleSwitchController() {
     };
 
     const handlePointerDown = (e: PointerEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLButtonElement) return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.closest('button')) return;
       handleSwitch();
     };
 
