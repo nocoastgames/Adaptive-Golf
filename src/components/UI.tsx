@@ -303,6 +303,24 @@ export function UI() {
           </div>
         )}
       </div>
+
+      {/* Gameplay Controls (End Game / Reset Round) */}
+      {['player_turn_start', 'aiming', 'power', 'rolling'].includes(gameState) && (
+        <div className="absolute bottom-8 left-8 flex gap-4 pointer-events-auto">
+          <button 
+            onClick={() => useStore.getState().resetRound()}
+            className="px-6 py-3 bg-[#FFDD00] border-4 border-black rounded-full shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-xl font-black uppercase tracking-wider hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all text-black"
+          >
+            Reset Round
+          </button>
+          <button 
+            onClick={() => useStore.getState().endGame()}
+            className="px-6 py-3 bg-[#FF0055] border-4 border-black rounded-full shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-xl font-black uppercase tracking-wider hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all text-white"
+          >
+            End Game
+          </button>
+        </div>
+      )}
     </div>
   );
 }

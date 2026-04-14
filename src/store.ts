@@ -64,6 +64,8 @@ interface StoreState {
   ballSinking: () => void;
   ballStopped: (inHole: boolean, finalPos: [number, number, number]) => void;
   resetGame: () => void;
+  endGame: () => void;
+  resetRound: () => void;
   exportCSV: () => void;
 }
 
@@ -212,6 +214,21 @@ export const useStore = create<StoreState>((set, get) => ({
     ballPosition: COURSES[0].startPos,
     strokesThisHole: 0,
   }),
+
+  endGame: () => set({
+    gameState: 'game_over'
+  }),
+
+  resetRound: () => {
+    const { currentCourse } = get();
+    set({
+      gameState: 'player_turn_start',
+      ballPosition: COURSES[currentCourse].startPos,
+      strokesThisHole: 0,
+      aimAngle: 0,
+      powerLevel: 0,
+    });
+  },
 
   exportCSV: () => {
     const { players } = get();

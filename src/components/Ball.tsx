@@ -27,8 +27,8 @@ export function Ball() {
     position: ballPosition,
     args: [0.5],
     material: { friction: 0.1, restitution: 0.5 },
-    linearDamping: 0.2,
-    angularDamping: 0.2,
+    linearDamping: 0.3,
+    angularDamping: 0.3,
   }));
 
   // Refs for animation loops
@@ -58,6 +58,13 @@ export function Ball() {
       api.position.set(ballPosition[0], ballPosition[1], ballPosition[2]);
       api.velocity.set(0, 0, 0);
       api.angularVelocity.set(0, 0, 0);
+      
+      // Restore collisions
+      if (api.collisionFilterGroup && api.collisionFilterMask) {
+        api.collisionFilterGroup.set(1);
+        api.collisionFilterMask.set(1);
+      }
+
       hasShot.current = false;
       isRolling.current = false;
       sinkingTime.current = 0;
@@ -98,6 +105,12 @@ export function Ball() {
     if (gameState === 'sinking') {
       api.velocity.set(0, 0, 0);
       api.angularVelocity.set(0, 0, 0);
+      
+      // Disable collisions so it can drop through the floor
+      if (api.collisionFilterGroup && api.collisionFilterMask) {
+        api.collisionFilterGroup.set(0);
+        api.collisionFilterMask.set(0);
+      }
       // We'll animate it down in useFrame
     }
   }, [gameState, api]);
@@ -166,7 +179,7 @@ export function Ball() {
         velocity.current[2] ** 2
       );
 
-      if (speed < 0.05) {
+      if (speed < 0.08) {
         if (!stopTimer.current) {
           stopTimer.current = setTimeout(() => {
             if (useStore.getState().gameState !== 'rolling') return;
@@ -181,7 +194,7 @@ export function Ball() {
               ballStopped(false, ballPosition);
             }
             stopTimer.current = null;
-          }, 1000);
+          }, 400);
         }
       } else {
         if (stopTimer.current) {
@@ -208,26 +221,27 @@ export function Ball() {
       const p = position.current;
       const targetX = course.holePos[0];
       const targetZ = course.holePos[2];
-      const targetY = course.holePos[1] - 1; // Drop below ground
+      const targetY = course.holePos[1] - 2; // Drop deeper below ground
       
-      const newX = THREE.MathUtils.lerp(p[0], targetX, 0.1);
-      const newZ = THREE.MathUtils.lerp(p[2], targetZ, 0.1);
-      const newY = THREE.MathUtils.lerp(p[1], targetY, 0.05);
+      // Snap to X/Z center quickly, drop Y steadily
+      const newX = THREE.MathUtils.lerp(p[0], targetX, 0.2);
+      const newZ = THREE.MathUtils.lerp(p[2], targetZ, 0.2);
+      const newY = THREE.MathUtils.lerp(p[1], targetY, 0.1);
       
       if (api && api.position && api.velocity) {
         api.position.set(newX, newY, newZ);
         api.velocity.set(0, 0, 0);
       }
 
-      if (sinkingTime.current > 1.5) {
-        // Done sinking
+      if (sinkingTime.current > 1.0) {
+        // Done sinking faster
         ballStopped(true, [targetX, targetY, targetZ]);
       }
     }
   });
 
   // Calculate scale based on sinking
-  const scale = gameState === 'sinking' ? Math.max(0, 1 - sinkingTime.current) : 1;
+  const scale = gameState === 'sinking' ? Math.max(0, 1 - sinkingTime.current * 1.5) : 1;
 
   return (
     <group>
