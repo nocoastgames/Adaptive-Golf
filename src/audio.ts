@@ -154,41 +154,8 @@ export class AudioSystem {
 
   toggleBGM() {
     this.init();
-    if (!this.ctx) return;
-
-    if (this.isPlayingBGM) {
-      if (this.bgmOsc) {
-        this.bgmOsc.stop();
-        this.bgmOsc.disconnect();
-      }
-      this.isPlayingBGM = false;
-      return;
-    }
-
-    // Simple looping background drone/chord
-    this.bgmOsc = this.ctx.createOscillator();
-    this.bgmGain = this.ctx.createGain();
-    
-    this.bgmOsc.type = 'triangle';
-    this.bgmOsc.frequency.setValueAtTime(110, this.ctx.currentTime); // A2
-    
-    // LFO for volume to make it pulse gently
-    const lfo = this.ctx.createOscillator();
-    lfo.type = 'sine';
-    lfo.frequency.setValueAtTime(0.5, this.ctx.currentTime);
-    const lfoGain = this.ctx.createGain();
-    lfoGain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-    lfo.connect(lfoGain);
-    lfoGain.connect(this.bgmGain.gain);
-    
-    this.bgmGain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-    
-    this.bgmOsc.connect(this.bgmGain);
-    this.bgmGain.connect(this.ctx.destination);
-    
-    this.bgmOsc.start();
-    lfo.start();
-    this.isPlayingBGM = true;
+    // We removed the pulsing drone sound per user request.
+    // The ambient wind/birds are already started by init().
   }
 }
 

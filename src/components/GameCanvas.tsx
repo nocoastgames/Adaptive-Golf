@@ -41,7 +41,7 @@ export function GameCanvas() {
       <Canvas shadows camera={{ position: [0, 10, 20], fov: 50 }}>
         <CameraFollow />
         <Suspense fallback={null}>
-          <Environment background preset={preset} blur={0.8} />
+          <Environment background preset={preset} blur={0.05} />
         </Suspense>
         <ambientLight intensity={0.5} />
         <directionalLight

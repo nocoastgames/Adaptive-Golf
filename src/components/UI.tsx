@@ -58,30 +58,40 @@ export function UI() {
     if (gameState === 'hole_scored' || gameState === 'game_over') {
       const duration = 3000;
       const end = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
-      const frame = () => {
-        confetti({
-          particleCount: 5,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0 },
-          colors: ['#FF0055', '#00AAFF', '#00FF00', '#FFDD00']
-        });
-        confetti({
-          particleCount: 5,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1 },
-          colors: ['#FF0055', '#00AAFF', '#00FF00', '#FFDD00']
-        });
+      function randomInRange(min: number, max: number) {
+        return Math.random() * (max - min) + min;
+      }
 
-        if (Date.now() < end) {
-          requestAnimationFrame(frame);
+      const interval: any = setInterval(function() {
+        const timeLeft = end - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
         }
-      };
-      frame();
+
+        const particleCount = 50 * (timeLeft / duration);
+        // since particles fall down, start a bit higher than random
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 } }));
+      }, 250);
+      
+      return () => clearInterval(interval);
     }
   }, [gameState]);
+
+  const getScoreText = (strokes: number, par: number) => {
+    if (strokes === 1) return "HOLE IN ONE!";
+    const diff = strokes - par;
+    if (diff <= -3) return "ALBATROSS!";
+    if (diff === -2) return "EAGLE!";
+    if (diff === -1) return "BIRDIE!";
+    if (diff === 0) return "PAR";
+    if (diff === 1) return "BOGEY";
+    if (diff === 2) return "DOUBLE BOGEY";
+    if (diff === 3) return "TRIPLE BOGEY";
+    return `+${diff}`;
+  };
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-8 z-10">
@@ -541,7 +551,7 @@ export function UI() {
         {gameState === 'hole_scored' && (
           <div className="text-center animate-bounce">
             <h2 className="text-9xl font-black text-[#FFDD00] drop-shadow-[0_10px_0_rgba(0,0,0,1)] uppercase tracking-tighter mb-8" style={{ WebkitTextStroke: '4px black' }}>
-              HOLE IN ONE!
+              {getScoreText(strokesThisHole, course.par)}
             </h2>
             <div className="inline-block px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
               <span className="text-4xl font-black uppercase tracking-widest text-black">
