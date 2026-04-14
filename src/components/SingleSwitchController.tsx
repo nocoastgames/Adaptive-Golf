@@ -48,7 +48,11 @@ export function SingleSwitchController() {
         nextPlayer();
         break;
       case 'game_over':
-        resetGame();
+        if (useStore.getState().tournament) {
+          // If in a tournament, don't auto-reset on switch. Let teacher use mouse to save/discard.
+        } else {
+          resetGame();
+        }
         break;
     }
   };

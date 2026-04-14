@@ -17,7 +17,17 @@ export function UI() {
     strokesThisHole,
     updatePlayer,
     startGame,
-    exportCSV
+    exportCSV,
+    tournament,
+    generateTournament,
+    updateTournamentTeam,
+    startTournamentMatchup,
+    saveTournamentMatchup,
+    discardTournamentMatchup,
+    importTournament,
+    exportTournament,
+    playNonRanked,
+    quitTournament
   } = useStore();
 
   const currentPlayer = players[currentPlayerIndex];
@@ -220,21 +230,50 @@ export function UI() {
         {gameState === 'bracket_setup' && (
           <div className="bg-white border-8 border-black rounded-[3rem] p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] max-w-4xl w-full max-h-[80vh] overflow-y-auto pointer-events-auto">
             <h2 className="text-5xl font-black uppercase tracking-wider text-black mb-8 text-center">
-              Tournament Bracket Setup
+              Tournament Setup
             </h2>
-            <div className="p-8 bg-gray-100 rounded-2xl border-4 border-black text-center mb-8">
-              <p className="text-2xl font-bold mb-4">Bracket system is under construction!</p>
-              <p className="text-xl text-gray-600 mb-8">Soon you will be able to build, export, and load tournament brackets here.</p>
-              
-              <div className="flex gap-4 justify-center">
-                <button className="px-6 py-3 bg-gray-300 border-4 border-black rounded-xl font-bold text-xl opacity-50 cursor-not-allowed">
-                  Import Bracket JSON
-                </button>
-                <button className="px-6 py-3 bg-gray-300 border-4 border-black rounded-xl font-bold text-xl opacity-50 cursor-not-allowed">
-                  Create New Bracket
-                </button>
+            <div className="flex flex-col gap-8 mb-8">
+              <div className="p-8 bg-gray-100 rounded-2xl border-4 border-black text-center">
+                <h3 className="text-3xl font-black uppercase mb-6">Create New Bracket</h3>
+                <div className="flex gap-4 justify-center">
+                  {[4, 8, 16].map(num => (
+                    <button 
+                      key={num}
+                      onClick={() => {
+                        generateTournament(num);
+                        setGameState('bracket_name_entry');
+                      }}
+                      className="px-8 py-4 bg-[#00FF00] border-4 border-black rounded-xl font-black text-2xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                    >
+                      {num} Teams
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-8 bg-gray-100 rounded-2xl border-4 border-black text-center">
+                <h3 className="text-3xl font-black uppercase mb-6">Load Existing Bracket</h3>
+                <label className="inline-block px-8 py-4 bg-[#00AAFF] text-white border-4 border-black rounded-xl font-black text-2xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer">
+                  Import JSON File
+                  <input 
+                    type="file" 
+                    accept=".json" 
+                    className="hidden" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const json = event.target?.result as string;
+                        importTournament(json);
+                      };
+                      reader.readAsText(file);
+                    }}
+                  />
+                </label>
               </div>
             </div>
+
             <div className="text-center">
               <button 
                 onClick={() => setGameState('title')}
@@ -242,6 +281,122 @@ export function UI() {
               >
                 Back to Menu
               </button>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'bracket_name_entry' && tournament && (
+          <div className="bg-white border-8 border-black rounded-[3rem] p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] max-w-4xl w-full max-h-[80vh] overflow-y-auto pointer-events-auto">
+            <h2 className="text-5xl font-black uppercase tracking-wider text-black mb-8 text-center">
+              Enter Team Names
+            </h2>
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              {Object.values(tournament.teams).map((team) => (
+                <div key={team.id} className="flex flex-col gap-2 bg-gray-100 p-4 rounded-2xl border-4 border-black">
+                  <label className="text-xl font-bold uppercase">{team.id}</label>
+                  <input 
+                    type="text" 
+                    value={team.name}
+                    onChange={(e) => updateTournamentTeam(team.id, e.target.value)}
+                    className="border-4 border-black rounded-xl p-3 text-2xl font-bold"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="text-center">
+              <button 
+                onClick={() => setGameState('bracket_view')}
+                className="px-12 py-6 bg-[#00FF00] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-4xl font-black uppercase tracking-widest hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+              >
+                View Bracket
+              </button>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'bracket_view' && tournament && (
+          <div className="bg-white border-8 border-black rounded-[3rem] p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] max-w-6xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto flex flex-col">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-5xl font-black uppercase tracking-wider text-black">
+                Tournament Bracket
+              </h2>
+              <div className="flex gap-4">
+                <button 
+                  onClick={exportTournament}
+                  className="px-6 py-3 bg-[#00AAFF] border-4 border-black rounded-xl font-bold text-xl text-white hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                >
+                  Export Bracket
+                </button>
+                <button 
+                  onClick={quitTournament}
+                  className="px-6 py-3 bg-[#FF0055] border-4 border-black rounded-xl font-bold text-xl text-white hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                >
+                  Quit
+                </button>
+              </div>
+            </div>
+
+            {/* Bracket Visualization */}
+            <div className="flex gap-8 overflow-x-auto pb-8 mb-8 flex-1">
+              {Array.from(new Set(Object.values(tournament.matchups).map(m => m.round))).sort().map(r => (
+                <div key={r} className="flex flex-col gap-4 min-w-[250px] justify-around">
+                  <h3 className="text-2xl font-black uppercase text-center bg-black text-white py-2 rounded-xl">Round {r}</h3>
+                  {Object.values(tournament.matchups).filter(m => m.round === r).map(m => (
+                    <div key={m.id} className={`border-4 border-black p-4 rounded-xl ${m.winnerId ? 'bg-gray-200' : 'bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}>
+                      <div className={`font-bold text-xl ${m.winnerId === m.team1Id ? 'text-[#00FF00]' : ''}`}>
+                        {m.team1Id ? tournament.teams[m.team1Id].name : 'TBD'}
+                      </div>
+                      <div className="h-1 bg-black my-2 opacity-20"></div>
+                      <div className={`font-bold text-xl ${m.winnerId === m.team2Id ? 'text-[#00FF00]' : ''}`}>
+                        {m.team2Id ? tournament.teams[m.team2Id].name : 'TBD'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-8 justify-center items-center bg-gray-100 p-8 rounded-3xl border-4 border-black">
+              <div className="flex-1">
+                <h3 className="text-2xl font-black uppercase mb-4">Play Next Match</h3>
+                <div className="flex gap-4">
+                  <select 
+                    id="matchup-select"
+                    className="flex-1 border-4 border-black rounded-xl p-3 text-xl font-bold"
+                  >
+                    {Object.values(tournament.matchups)
+                      .filter(m => m.team1Id && m.team2Id && !m.winnerId)
+                      .map(m => (
+                        <option key={m.id} value={m.id}>
+                          {tournament.teams[m.team1Id!].name} vs {tournament.teams[m.team2Id!].name}
+                        </option>
+                      ))
+                    }
+                  </select>
+                  <button 
+                    onClick={() => {
+                      const select = document.getElementById('matchup-select') as HTMLSelectElement;
+                      if (select && select.value) {
+                        startTournamentMatchup(select.value);
+                      }
+                    }}
+                    className="px-8 py-4 bg-[#FFDD00] border-4 border-black rounded-xl font-black text-xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  >
+                    Start Match
+                  </button>
+                </div>
+              </div>
+              <div className="w-1 bg-black h-24 opacity-20"></div>
+              <div className="flex-1 text-center">
+                <h3 className="text-2xl font-black uppercase mb-4">Eliminated Teams</h3>
+                <button 
+                  onClick={playNonRanked}
+                  className="px-8 py-4 bg-[#00FF00] border-4 border-black rounded-xl font-black text-xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                >
+                  Play Non-Ranked Game
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -306,7 +461,7 @@ export function UI() {
         )}
 
         {gameState === 'game_over' && (
-          <div className="text-center bg-white border-8 border-black rounded-[3rem] p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)]">
+          <div className="text-center bg-white border-8 border-black rounded-[3rem] p-12 shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] pointer-events-auto">
             <h2 className="text-8xl font-black uppercase tracking-wider text-black mb-12">
               Game Over!
             </h2>
@@ -324,19 +479,57 @@ export function UI() {
                 </div>
               ))}
             </div>
-            <div className="flex gap-6 justify-center">
-              <button 
-                onClick={exportCSV}
-                className="px-8 py-4 bg-[#00AAFF] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-3xl font-black uppercase tracking-widest hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all text-white"
-              >
-                Export CSV
-              </button>
-              <div className="inline-block px-8 py-4 bg-[#00FF00] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-bounce">
-                <span className="text-3xl font-black uppercase tracking-widest text-black">
-                  Press switch to play again
-                </span>
+            
+            {/* Tournament Matchup Resolution */}
+            {tournament && !tournament.isNonRanked && tournament.currentMatchupId ? (
+              <div className="bg-gray-100 p-8 rounded-2xl border-4 border-black mb-8">
+                <h3 className="text-3xl font-black uppercase mb-6">Save Match Results</h3>
+                <div className="flex gap-4 justify-center">
+                  <button 
+                    onClick={() => saveTournamentMatchup(tournament.matchups[tournament.currentMatchupId!].team1Id!)}
+                    className="px-6 py-4 bg-[#00FF00] border-4 border-black rounded-xl font-black text-xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  >
+                    {players[0].name} Wins
+                  </button>
+                  <button 
+                    onClick={() => saveTournamentMatchup(tournament.matchups[tournament.currentMatchupId!].team2Id!)}
+                    className="px-6 py-4 bg-[#00FF00] border-4 border-black rounded-xl font-black text-xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  >
+                    {players[1].name} Wins
+                  </button>
+                  <button 
+                    onClick={discardTournamentMatchup}
+                    className="px-6 py-4 bg-[#FF0055] text-white border-4 border-black rounded-xl font-black text-xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  >
+                    Discard Results
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : tournament && tournament.isNonRanked ? (
+              <div className="flex gap-6 justify-center">
+                <button 
+                  onClick={() => setGameState('bracket_view')}
+                  className="px-8 py-4 bg-[#FFDD00] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-3xl font-black uppercase tracking-widest hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all text-black"
+                >
+                  Back to Bracket
+                </button>
+              </div>
+            ) : (
+              /* Standard Game Over Actions */
+              <div className="flex gap-6 justify-center">
+                <button 
+                  onClick={exportCSV}
+                  className="px-8 py-4 bg-[#00AAFF] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-3xl font-black uppercase tracking-widest hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all text-white"
+                >
+                  Export CSV
+                </button>
+                <div className="inline-block px-8 py-4 bg-[#00FF00] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-bounce">
+                  <span className="text-3xl font-black uppercase tracking-widest text-black">
+                    Press switch to play again
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
