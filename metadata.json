@@ -1,0 +1,5 @@
+{
+  "name": "Super Switch Golf",
+  "description": "A 3D mini-golf game designed for adapted PE. Accessible via a single switch (spacebar or tap) with bright colors, high contrast, and up to 5 players.",
+  "requestFramePermissions": []
+}
