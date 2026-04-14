@@ -18,6 +18,8 @@ export type GameState =
   | 'stroke_limit_reached'
   | 'game_over';
 
+export type BackgroundTheme = 'desert' | 'trees' | 'ocean';
+
 export interface Player {
   id: number;
   color: string;
@@ -82,11 +84,13 @@ interface StoreState {
   ballPosition: [number, number, number];
   strokesThisHole: number;
   tournament: Tournament | null;
+  backgroundTheme: BackgroundTheme;
   
   // Actions
   setGameState: (state: GameState) => void;
   setScanningOption: (opt: number) => void;
   setGameSpeed: (speed: number) => void;
+  setBackgroundTheme: (theme: BackgroundTheme) => void;
   setupGame: (numPlayers: number) => void;
   updatePlayer: (index: number, updates: Partial<Player>) => void;
   
@@ -133,10 +137,12 @@ export const useStore = create<StoreState>((set, get) => ({
   ballPosition: COURSES[0].startPos,
   strokesThisHole: 0,
   tournament: null,
+  backgroundTheme: 'trees',
 
   setGameState: (state) => set({ gameState: state }),
   setScanningOption: (opt) => set({ scanningOption: opt }),
   setGameSpeed: (speed) => set({ gameSpeed: speed }),
+  setBackgroundTheme: (theme) => set({ backgroundTheme: theme }),
   
   generateTournament: (numTeams) => {
     const totalSlots = Math.pow(2, Math.ceil(Math.log2(Math.max(2, numTeams))));

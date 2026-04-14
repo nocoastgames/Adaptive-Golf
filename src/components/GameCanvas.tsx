@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Physics } from '@react-three/cannon';
 import { Sky, Environment } from '@react-three/drei';
@@ -32,13 +33,16 @@ function CameraFollow() {
 }
 
 export function GameCanvas() {
-  const { gameState } = useStore();
+  const { gameState, backgroundTheme } = useStore();
+  const preset = backgroundTheme === 'desert' ? 'sunset' : backgroundTheme === 'trees' ? 'forest' : 'dawn';
 
   return (
     <div className="absolute inset-0 bg-[#87CEEB]">
       <Canvas shadows camera={{ position: [0, 10, 20], fov: 50 }}>
         <CameraFollow />
-        <Sky sunPosition={[100, 20, 100]} />
+        <Suspense fallback={null}>
+          <Environment background preset={preset} blur={0.8} />
+        </Suspense>
         <ambientLight intensity={0.5} />
         <directionalLight
           castShadow

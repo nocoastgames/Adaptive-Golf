@@ -33,7 +33,9 @@ export function UI() {
     importTournament,
     exportTournament,
     playNonRanked,
-    quitTournament
+    quitTournament,
+    backgroundTheme,
+    setBackgroundTheme
   } = useStore();
 
   const currentPlayer = players[currentPlayerIndex];
@@ -120,9 +122,9 @@ export function UI() {
       {/* Center Content */}
       <div className="flex-1 flex items-center justify-center pointer-events-auto">
         {gameState === 'title' && (
-          <div className="text-center animate-bounce pointer-events-auto">
-            <h1 className="text-9xl font-black text-white drop-shadow-[0_10px_0_rgba(0,0,0,1)] uppercase tracking-tighter mb-8" style={{ WebkitTextStroke: '4px black' }}>
-              Super Golf!
+          <div className="text-center animate-pulse pointer-events-auto">
+            <h1 className="text-7xl font-black text-white drop-shadow-[0_10px_0_rgba(0,0,0,1)] uppercase tracking-tighter mb-8" style={{ WebkitTextStroke: '4px black' }}>
+              John F. Miller Open
             </h1>
             <div className="flex flex-col gap-6 items-center">
               <button 
@@ -141,6 +143,29 @@ export function UI() {
                   Tournament Bracket
                 </span>
               </button>
+            </div>
+            <div className="mt-12 bg-white/80 p-4 rounded-2xl border-4 border-black inline-block">
+              <p className="text-xl font-bold uppercase mb-4">Select Background</p>
+              <div className="flex gap-4 justify-center">
+                <button 
+                  onClick={() => setBackgroundTheme('desert')} 
+                  className={`px-4 py-2 rounded-xl border-4 border-black font-bold ${backgroundTheme === 'desert' ? 'bg-[#FFDD00]' : 'bg-white'}`}
+                >
+                  Desert
+                </button>
+                <button 
+                  onClick={() => setBackgroundTheme('trees')} 
+                  className={`px-4 py-2 rounded-xl border-4 border-black font-bold ${backgroundTheme === 'trees' ? 'bg-[#00FF00]' : 'bg-white'}`}
+                >
+                  Trees
+                </button>
+                <button 
+                  onClick={() => setBackgroundTheme('ocean')} 
+                  className={`px-4 py-2 rounded-xl border-4 border-black font-bold ${backgroundTheme === 'ocean' ? 'bg-[#00AAFF]' : 'bg-white'}`}
+                >
+                  Ocean
+                </button>
+              </div>
             </div>
           </div>
         )}
