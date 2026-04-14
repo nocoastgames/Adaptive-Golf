@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore, COURSES } from '../store';
 import confetti from 'canvas-confetti';
 
 export function UI() {
+  const [numTeamsInput, setNumTeamsInput] = useState(8);
   const { 
     gameState, 
     setGameState,
@@ -21,8 +22,8 @@ export function UI() {
     tournament,
     generateTournament,
     updateTournamentTeam,
-    startTournamentMatchup,
-    saveTournamentMatchup,
+    startTournamentTeamRound,
+    saveTeamScore,
     discardTournamentMatchup,
     importTournament,
     exportTournament,
@@ -204,15 +205,6 @@ export function UI() {
                       className="border-4 border-black rounded-xl p-3 text-2xl font-bold"
                     />
                   </div>
-                  <div className="flex-1 flex flex-col gap-2">
-                    <label className="text-xl font-bold uppercase">Team Name</label>
-                    <input 
-                      type="text" 
-                      value={p.team}
-                      onChange={(e) => updatePlayer(idx, { team: e.target.value })}
-                      className="border-4 border-black rounded-xl p-3 text-2xl font-bold"
-                    />
-                  </div>
                 </div>
               ))}
             </div>
@@ -235,19 +227,27 @@ export function UI() {
             <div className="flex flex-col gap-8 mb-8">
               <div className="p-8 bg-gray-100 rounded-2xl border-4 border-black text-center">
                 <h3 className="text-3xl font-black uppercase mb-6">Create New Bracket</h3>
-                <div className="flex gap-4 justify-center">
-                  {[4, 8, 16].map(num => (
-                    <button 
-                      key={num}
-                      onClick={() => {
-                        generateTournament(num);
-                        setGameState('bracket_name_entry');
-                      }}
-                      className="px-8 py-4 bg-[#00FF00] border-4 border-black rounded-xl font-black text-2xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
-                    >
-                      {num} Teams
-                    </button>
-                  ))}
+                <div className="flex flex-col gap-4 items-center justify-center">
+                  <div className="flex items-center gap-4">
+                    <label className="text-2xl font-bold uppercase">Number of Teams:</label>
+                    <input 
+                      type="number" 
+                      min="2" 
+                      max="32" 
+                      value={numTeamsInput} 
+                      onChange={e => setNumTeamsInput(parseInt(e.target.value) || 2)}
+                      className="border-4 border-black rounded-xl p-2 text-2xl font-bold w-24 text-center"
+                    />
+                  </div>
+                  <button 
+                    onClick={() => {
+                      generateTournament(numTeamsInput);
+                      setGameState('bracket_name_entry');
+                    }}
+                    className="px-8 py-4 bg-[#00FF00] border-4 border-black rounded-xl font-black text-2xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  >
+                    Generate Bracket
+                  </button>
                 </div>
               </div>
 
@@ -291,7 +291,7 @@ export function UI() {
               Enter Team Names
             </h2>
             <div className="grid grid-cols-2 gap-4 mb-8">
-              {Object.values(tournament.teams).map((team) => (
+              {Object.values(tournament.teams).filter(t => !t.isBye).map((team) => (
                 <div key={team.id} className="flex flex-col gap-2 bg-gray-100 p-4 rounded-2xl border-4 border-black">
                   <label className="text-xl font-bold uppercase">{team.id}</label>
                   <input 
@@ -343,12 +343,14 @@ export function UI() {
                   <h3 className="text-2xl font-black uppercase text-center bg-black text-white py-2 rounded-xl">Round {r}</h3>
                   {Object.values(tournament.matchups).filter(m => m.round === r).map(m => (
                     <div key={m.id} className={`border-4 border-black p-4 rounded-xl ${m.winnerId ? 'bg-gray-200' : 'bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'}`}>
-                      <div className={`font-bold text-xl ${m.winnerId === m.team1Id ? 'text-[#00FF00]' : ''}`}>
-                        {m.team1Id ? tournament.teams[m.team1Id].name : 'TBD'}
+                      <div className={`font-bold text-xl flex justify-between ${m.winnerId === m.team1Id ? 'text-[#00FF00]' : ''}`}>
+                        <span>{m.team1Id ? tournament.teams[m.team1Id].name : 'TBD'}</span>
+                        <span>{m.team1Score !== null ? m.team1Score.toFixed(1) : ''}</span>
                       </div>
                       <div className="h-1 bg-black my-2 opacity-20"></div>
-                      <div className={`font-bold text-xl ${m.winnerId === m.team2Id ? 'text-[#00FF00]' : ''}`}>
-                        {m.team2Id ? tournament.teams[m.team2Id].name : 'TBD'}
+                      <div className={`font-bold text-xl flex justify-between ${m.winnerId === m.team2Id ? 'text-[#00FF00]' : ''}`}>
+                        <span>{m.team2Id ? tournament.teams[m.team2Id].name : 'TBD'}</span>
+                        <span>{m.team2Score !== null ? m.team2Score.toFixed(1) : ''}</span>
                       </div>
                     </div>
                   ))}
@@ -359,31 +361,41 @@ export function UI() {
             {/* Actions */}
             <div className="flex gap-8 justify-center items-center bg-gray-100 p-8 rounded-3xl border-4 border-black">
               <div className="flex-1">
-                <h3 className="text-2xl font-black uppercase mb-4">Play Next Match</h3>
+                <h3 className="text-2xl font-black uppercase mb-4">Play Team Round</h3>
                 <div className="flex gap-4">
                   <select 
-                    id="matchup-select"
+                    id="team-select"
                     className="flex-1 border-4 border-black rounded-xl p-3 text-xl font-bold"
                   >
                     {Object.values(tournament.matchups)
-                      .filter(m => m.team1Id && m.team2Id && !m.winnerId)
-                      .map(m => (
-                        <option key={m.id} value={m.id}>
-                          {tournament.teams[m.team1Id!].name} vs {tournament.teams[m.team2Id!].name}
+                      .flatMap(m => {
+                        const pending = [];
+                        if (m.team1Id && m.team1Score === null && !tournament.teams[m.team1Id].isBye) {
+                          pending.push({ matchupId: m.id, teamId: m.team1Id, name: tournament.teams[m.team1Id].name, round: m.round });
+                        }
+                        if (m.team2Id && m.team2Score === null && !tournament.teams[m.team2Id].isBye) {
+                          pending.push({ matchupId: m.id, teamId: m.team2Id, name: tournament.teams[m.team2Id].name, round: m.round });
+                        }
+                        return pending;
+                      })
+                      .map(pr => (
+                        <option key={`${pr.matchupId}-${pr.teamId}`} value={`${pr.matchupId}|${pr.teamId}`}>
+                          {pr.name} (Round {pr.round})
                         </option>
                       ))
                     }
                   </select>
                   <button 
                     onClick={() => {
-                      const select = document.getElementById('matchup-select') as HTMLSelectElement;
+                      const select = document.getElementById('team-select') as HTMLSelectElement;
                       if (select && select.value) {
-                        startTournamentMatchup(select.value);
+                        const [mId, tId] = select.value.split('|');
+                        startTournamentTeamRound(mId, tId);
                       }
                     }}
                     className="px-8 py-4 bg-[#FFDD00] border-4 border-black rounded-xl font-black text-xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
                   >
-                    Start Match
+                    Start Round
                   </button>
                 </div>
               </div>
@@ -481,21 +493,16 @@ export function UI() {
             </div>
             
             {/* Tournament Matchup Resolution */}
-            {tournament && !tournament.isNonRanked && tournament.currentMatchupId ? (
+            {tournament && !tournament.isNonRanked && tournament.currentMatchupId && tournament.currentTeamId ? (
               <div className="bg-gray-100 p-8 rounded-2xl border-4 border-black mb-8">
-                <h3 className="text-3xl font-black uppercase mb-6">Save Match Results</h3>
+                <h3 className="text-3xl font-black uppercase mb-6">Tournament Round Complete</h3>
+                <p className="text-2xl font-bold mb-6">Team Average Score: {(players.length > 0 ? players.reduce((sum, p) => sum + p.score, 0) / players.length : 0).toFixed(1)}</p>
                 <div className="flex gap-4 justify-center">
                   <button 
-                    onClick={() => saveTournamentMatchup(tournament.matchups[tournament.currentMatchupId!].team1Id!)}
+                    onClick={() => saveTeamScore(players.length > 0 ? players.reduce((sum, p) => sum + p.score, 0) / players.length : 0)}
                     className="px-6 py-4 bg-[#00FF00] border-4 border-black rounded-xl font-black text-xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
                   >
-                    {players[0].name} Wins
-                  </button>
-                  <button 
-                    onClick={() => saveTournamentMatchup(tournament.matchups[tournament.currentMatchupId!].team2Id!)}
-                    className="px-6 py-4 bg-[#00FF00] border-4 border-black rounded-xl font-black text-xl hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
-                  >
-                    {players[1].name} Wins
+                    Save Score ({(players.length > 0 ? players.reduce((sum, p) => sum + p.score, 0) / players.length : 0).toFixed(1)})
                   </button>
                   <button 
                     onClick={discardTournamentMatchup}

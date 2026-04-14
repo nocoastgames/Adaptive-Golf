@@ -29,6 +29,7 @@ export interface Player {
 export interface TournamentTeam {
   id: string;
   name: string;
+  isBye?: boolean;
 }
 
 export interface TournamentMatchup {
@@ -37,6 +38,8 @@ export interface TournamentMatchup {
   matchIndex: number;
   team1Id: string | null;
   team2Id: string | null;
+  team1Score: number | null;
+  team2Score: number | null;
   winnerId: string | null;
   nextMatchupId: string | null;
 }
@@ -45,6 +48,7 @@ export interface Tournament {
   teams: Record<string, TournamentTeam>;
   matchups: Record<string, TournamentMatchup>;
   currentMatchupId: string | null;
+  currentTeamId: string | null;
   isNonRanked: boolean;
 }
 
@@ -86,8 +90,8 @@ interface StoreState {
   // Tournament Actions
   generateTournament: (numTeams: number) => void;
   updateTournamentTeam: (id: string, name: string) => void;
-  startTournamentMatchup: (matchupId: string) => void;
-  saveTournamentMatchup: (winnerId: string) => void;
+  startTournamentTeamRound: (matchupId: string, teamId: string) => void;
+  saveTeamScore: (averageScore: number) => void;
   discardTournamentMatchup: () => void;
   importTournament: (json: string) => void;
   exportTournament: () => void;
@@ -129,36 +133,71 @@ export const useStore = create<StoreState>((set, get) => ({
   setGameSpeed: (speed) => set({ gameSpeed: speed }),
   
   generateTournament: (numTeams) => {
+    const totalSlots = Math.pow(2, Math.ceil(Math.log2(Math.max(2, numTeams))));
+    const numByes = totalSlots - numTeams;
+
     const teams: Record<string, TournamentTeam> = {};
+    const teamIds: string[] = [];
     for (let i = 1; i <= numTeams; i++) {
-      teams[`t${i}`] = { id: `t${i}`, name: `Team ${i}` };
+      const id = `t${i}`;
+      teams[id] = { id, name: `Team ${i}` };
+      teamIds.push(id);
+    }
+    const byeIds: string[] = [];
+    for (let i = 1; i <= numByes; i++) {
+      const id = `bye${i}`;
+      teams[id] = { id, name: `BYE`, isBye: true };
+      byeIds.push(id);
+    }
+
+    const round1Pairs: [string, string][] = [];
+    for (let i = 0; i < totalSlots / 2; i++) {
+      const t1 = teamIds.shift()!;
+      const t2 = byeIds.length > 0 ? byeIds.shift()! : teamIds.shift()!;
+      round1Pairs.push([t1, t2]);
     }
 
     const matchups: Record<string, TournamentMatchup> = {};
-    const totalRounds = Math.log2(numTeams);
+    const totalRounds = Math.log2(totalSlots);
 
     for (let r = 1; r <= totalRounds; r++) {
-      const matchesInRound = numTeams / Math.pow(2, r);
+      const matchesInRound = totalSlots / Math.pow(2, r);
       for (let m = 1; m <= matchesInRound; m++) {
         const id = `r${r}-m${m}`;
         const nextRound = r + 1;
         const nextMatchIndex = Math.ceil(m / 2);
         const nextMatchupId = r === totalRounds ? null : `r${nextRound}-m${nextMatchIndex}`;
 
+        let team1Id = null;
+        let team2Id = null;
+        let winnerId = null;
+
+        if (r === 1) {
+          team1Id = round1Pairs[m - 1][0];
+          team2Id = round1Pairs[m - 1][1];
+          if (teams[team1Id].isBye) winnerId = team2Id;
+          if (teams[team2Id].isBye) winnerId = team1Id;
+        }
+
         matchups[id] = {
-          id,
-          round: r,
-          matchIndex: m,
-          team1Id: r === 1 ? `t${m * 2 - 1}` : null,
-          team2Id: r === 1 ? `t${m * 2}` : null,
-          winnerId: null,
-          nextMatchupId
+          id, round: r, matchIndex: m,
+          team1Id, team2Id,
+          team1Score: null, team2Score: null,
+          winnerId, nextMatchupId
         };
       }
     }
 
+    Object.values(matchups).forEach(m => {
+      if (m.round === 1 && m.winnerId && m.nextMatchupId) {
+        const nextM = matchups[m.nextMatchupId];
+        if (m.matchIndex % 2 !== 0) nextM.team1Id = m.winnerId;
+        else nextM.team2Id = m.winnerId;
+      }
+    });
+
     set({
-      tournament: { teams, matchups, currentMatchupId: null, isNonRanked: false },
+      tournament: { teams, matchups, currentMatchupId: null, currentTeamId: null, isNonRanked: false },
       gameState: 'bracket_view'
     });
   },
@@ -178,55 +217,50 @@ export const useStore = create<StoreState>((set, get) => ({
     });
   },
 
-  startTournamentMatchup: (matchupId) => {
+  startTournamentTeamRound: (matchupId, teamId) => {
     set((state) => {
       if (!state.tournament) return state;
-      const match = state.tournament.matchups[matchupId];
-      if (!match.team1Id || !match.team2Id) return state;
-
-      const t1 = state.tournament.teams[match.team1Id];
-      const t2 = state.tournament.teams[match.team2Id];
-
-      const players = [
-        { id: 0, color: PLAYER_COLORS[0], name: t1.name, team: t1.name, strokes: 0, score: 0 },
-        { id: 1, color: PLAYER_COLORS[1], name: t2.name, team: t2.name, strokes: 0, score: 0 }
-      ];
-
       return {
-        tournament: { ...state.tournament, currentMatchupId: matchupId, isNonRanked: false },
-        players,
-        currentCourse: 0,
-        currentPlayerIndex: 0,
-        strokesThisHole: 0,
-        aimAngle: 0,
-        powerLevel: 0,
-        ballPosition: COURSES[0].startPos,
-        gameState: 'course_intro'
+        tournament: { ...state.tournament, currentMatchupId: matchupId, currentTeamId: teamId, isNonRanked: false },
+        gameState: 'setup_players',
+        scanningOption: 1
       };
     });
   },
 
-  saveTournamentMatchup: (winnerId) => {
+  saveTeamScore: (averageScore) => {
     set((state) => {
-      if (!state.tournament || !state.tournament.currentMatchupId) return state;
+      if (!state.tournament || !state.tournament.currentMatchupId || !state.tournament.currentTeamId) return state;
       const t = { ...state.tournament };
       const matchups = { ...t.matchups };
       const currentMatch = matchups[t.currentMatchupId];
 
-      currentMatch.winnerId = winnerId;
+      if (currentMatch.team1Id === t.currentTeamId) {
+        currentMatch.team1Score = averageScore;
+      } else if (currentMatch.team2Id === t.currentTeamId) {
+        currentMatch.team2Score = averageScore;
+      }
 
-      // Advance to next matchup
-      if (currentMatch.nextMatchupId) {
-        const nextMatch = matchups[currentMatch.nextMatchupId];
-        if (currentMatch.matchIndex % 2 !== 0) {
-          nextMatch.team1Id = winnerId;
+      if (currentMatch.team1Score !== null && currentMatch.team2Score !== null) {
+        if (currentMatch.team1Score <= currentMatch.team2Score) {
+          currentMatch.winnerId = currentMatch.team1Id;
         } else {
-          nextMatch.team2Id = winnerId;
+          currentMatch.winnerId = currentMatch.team2Id;
+        }
+
+        if (currentMatch.nextMatchupId) {
+          const nextMatch = matchups[currentMatch.nextMatchupId];
+          if (currentMatch.matchIndex % 2 !== 0) {
+            nextMatch.team1Id = currentMatch.winnerId;
+          } else {
+            nextMatch.team2Id = currentMatch.winnerId;
+          }
         }
       }
 
       t.matchups = matchups;
       t.currentMatchupId = null;
+      t.currentTeamId = null;
 
       return { tournament: t, gameState: 'bracket_view' };
     });
@@ -236,7 +270,7 @@ export const useStore = create<StoreState>((set, get) => ({
     set((state) => {
       if (!state.tournament) return state;
       return {
-        tournament: { ...state.tournament, currentMatchupId: null },
+        tournament: { ...state.tournament, currentMatchupId: null, currentTeamId: null },
         gameState: 'bracket_view'
       };
     });
@@ -267,7 +301,7 @@ export const useStore = create<StoreState>((set, get) => ({
     set((state) => {
       if (!state.tournament) return state;
       return {
-        tournament: { ...state.tournament, currentMatchupId: null, isNonRanked: true },
+        tournament: { ...state.tournament, currentMatchupId: null, currentTeamId: null, isNonRanked: true },
         gameState: 'setup_players'
       };
     });
@@ -276,11 +310,17 @@ export const useStore = create<StoreState>((set, get) => ({
   quitTournament: () => set({ tournament: null, gameState: 'title' }),
 
   setupGame: (numPlayers) => {
+    const state = get();
+    const t = state.tournament;
+    const teamName = t && t.currentTeamId && !t.isNonRanked
+      ? t.teams[t.currentTeamId].name
+      : 'Player';
+
     const newPlayers = Array.from({ length: numPlayers }).map((_, i) => ({
       id: i,
       color: PLAYER_COLORS[i],
-      name: PLAYER_NAMES[i],
-      team: `Team ${i + 1}`,
+      name: numPlayers === 1 ? teamName : `${teamName} P${i + 1}`,
+      team: teamName,
       strokes: 0,
       score: 0,
     }));
