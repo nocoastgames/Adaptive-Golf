@@ -526,9 +526,6 @@ export function UI() {
               </h3>
               <p className="text-4xl font-bold uppercase text-gray-500 mt-4">Par {course.par}</p>
             </div>
-            <div className="mt-8 text-4xl font-black uppercase text-white drop-shadow-[0_4px_0_rgba(0,0,0,1)]" style={{ WebkitTextStroke: '1px black' }}>
-              Press switch to begin
-            </div>
           </div>
         )}
 
@@ -541,9 +538,6 @@ export function UI() {
               <span className="text-6xl font-black uppercase tracking-widest text-white" style={{ WebkitTextStroke: '2px black' }}>
                 Ready {currentPlayer?.name}?
               </span>
-            </div>
-            <div className="mt-8 text-4xl font-black uppercase text-white drop-shadow-[0_4px_0_rgba(0,0,0,1)]" style={{ WebkitTextStroke: '1px black' }}>
-              Press switch to aim
             </div>
           </div>
         )}
@@ -673,6 +667,22 @@ export function UI() {
 
       {/* Bottom Bar: Instructions & Power Meter */}
       <div className="w-full flex flex-col items-center gap-4 pointer-events-none">
+        {gameState === 'course_intro' && (
+          <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
+            <span className="text-4xl font-black uppercase tracking-widest text-black">
+              Press switch to begin
+            </span>
+          </div>
+        )}
+
+        {gameState === 'player_turn_start' && (
+          <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
+            <span className="text-4xl font-black uppercase tracking-widest text-black">
+              Press switch to aim
+            </span>
+          </div>
+        )}
+
         {gameState === 'aiming' && (
           <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
             <span className="text-4xl font-black uppercase tracking-widest text-black">

@@ -244,6 +244,11 @@ export function Ball() {
   // Calculate scale based on sinking
   const scale = gameState === 'sinking' ? Math.max(0, 1 - sinkingTime.current * 1.5) : 1;
 
+  // Calculate base angle for the static cone
+  const dx = course.holePos[0] - ballPosition[0];
+  const dz = course.holePos[2] - ballPosition[2];
+  const baseAngle = Math.atan2(dx, -dz);
+
   return (
     <group>
       <mesh ref={ref as any} name="ball" castShadow receiveShadow scale={[scale, scale, scale]}>
@@ -255,16 +260,30 @@ export function Ball() {
         />
       </mesh>
 
-      {/* Aiming Arrow */}
+      {/* Static Aiming Cone */}
+      {(gameState === 'aiming' || gameState === 'power') && (
+        <group position={[ballPosition[0], ballPosition[1] + 0.05, ballPosition[2]]} rotation={[0, -baseAngle + Math.PI/2, 0]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+            <circleGeometry args={[8, 32, -Math.PI/2, Math.PI]} />
+            <meshBasicMaterial color="#FF0055" transparent opacity={0.3} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+            <circleGeometry args={[8, 32, -0.6, 1.2]} />
+            <meshBasicMaterial color="#FFDD00" transparent opacity={0.5} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+            <circleGeometry args={[8, 32, -0.2, 0.4]} />
+            <meshBasicMaterial color="#00FF00" transparent opacity={0.7} side={THREE.DoubleSide} />
+          </mesh>
+        </group>
+      )}
+
+      {/* Sweeping Arrow */}
       {(gameState === 'aiming' || gameState === 'power') && (
         <group position={ballPosition} rotation={[0, -aimAngle, 0]}>
-          <mesh position={[0, 0.1, -4]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[0.5, 8]} />
-            <meshBasicMaterial color="#FFFFFF" transparent opacity={0.5} />
-          </mesh>
-          <mesh position={[0, 0.1, -8]} rotation={[-Math.PI / 2, 0, 0]}>
-            <circleGeometry args={[0.5, 3]} />
-            <meshBasicMaterial color="#FFFFFF" transparent opacity={0.8} />
+          <mesh position={[0, 0.2, -4]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.2, 8]} />
+            <meshBasicMaterial color="#000000" transparent opacity={0.8} />
           </mesh>
         </group>
       )}
