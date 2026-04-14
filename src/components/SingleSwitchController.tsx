@@ -17,8 +17,7 @@ export function SingleSwitchController() {
   const handleSwitch = () => {
     switch (gameState) {
       case 'title':
-        audio.toggleBGM(); // Start music on first interaction
-        setGameState('setup_players');
+        // Do nothing on title screen, require teacher to click a button
         break;
       case 'setup_players':
         setupGame(scanningOption);

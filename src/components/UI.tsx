@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useStore, COURSES } from '../store';
+import { audio } from '../audio';
 import confetti from 'canvas-confetti';
 
 export function UI() {
@@ -138,7 +139,10 @@ export function UI() {
             </h1>
             <div className="flex flex-col gap-6 items-center">
               <button 
-                onClick={() => setGameState('setup_players')}
+                onClick={() => {
+                  audio.init();
+                  setGameState('setup_players');
+                }}
                 className="inline-block px-12 py-6 bg-[#00FF00] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
               >
                 <span className="text-4xl font-black uppercase tracking-widest text-black">
@@ -146,7 +150,10 @@ export function UI() {
                 </span>
               </button>
               <button 
-                onClick={() => setGameState('bracket_setup')}
+                onClick={() => {
+                  audio.init();
+                  setGameState('bracket_setup');
+                }}
                 className="inline-block px-8 py-4 bg-[#00AAFF] border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
               >
                 <span className="text-2xl font-black uppercase tracking-widest text-white">
