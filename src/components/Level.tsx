@@ -1,29 +1,89 @@
 import { useBox, useCylinder } from '@react-three/cannon';
 import { useStore, COURSES } from '../store';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-function Windmill() {
-  const [ref, api] = useBox(() => ({
+function WindmillBlade() {
+  const [ref1, api1] = useBox(() => ({
     type: 'Kinematic',
-    position: [0, 1, -15],
-    args: [12, 2, 1],
+    position: [0, 3.5, -13.5],
+    args: [9, 1.5, 0.5],
+    collisionFilterGroup: 1,
+  }));
+
+  const [ref2, api2] = useBox(() => ({
+    type: 'Kinematic',
+    position: [0, 3.5, -13.5],
+    args: [1.5, 9, 0.5],
     collisionFilterGroup: 1,
   }));
 
   useFrame((state) => {
-    if (!api || !api.rotation) return;
+    if (!api1 || !api2) return;
     const t = state.clock.getElapsedTime();
-    // Rotate around Z axis
-    api.rotation.set(0, 0, t * 1.5);
+    const angle = t * 1.5;
+    
+    api1.rotation.set(0, 0, angle);
+    api2.rotation.set(0, 0, angle);
   });
 
   return (
-    <mesh ref={ref as any} castShadow receiveShadow>
-      <boxGeometry args={[12, 2, 1]} />
-      <meshStandardMaterial color="#FF0055" />
-    </mesh>
+    <group>
+      <mesh ref={ref1 as any} castShadow receiveShadow>
+        <boxGeometry args={[9, 1.5, 0.5]} />
+        <meshStandardMaterial color="#FF0055" />
+      </mesh>
+      <mesh ref={ref2 as any} castShadow receiveShadow>
+        <boxGeometry args={[1.5, 9, 0.5]} />
+        <meshStandardMaterial color="#FF0055" />
+      </mesh>
+      <mesh position={[0, 3.5, -13.2]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#333333" />
+      </mesh>
+    </group>
+  );
+}
+
+function Windmill() {
+  // Left wall
+  useBox(() => ({ type: 'Static', position: [-3.25, 3.5, -15], args: [3.5, 7, 2] }));
+  // Right wall
+  useBox(() => ({ type: 'Static', position: [3.25, 3.5, -15], args: [3.5, 7, 2] }));
+  // Top wall (above hole)
+  useBox(() => ({ type: 'Static', position: [0, 5, -15], args: [3, 4, 2] }));
+
+  const shape = useMemo(() => {
+    const s = new THREE.Shape();
+    s.moveTo(-5, 0);
+    s.lineTo(5, 0);
+    s.lineTo(3.5, 8);
+    s.lineTo(-3.5, 8);
+    s.lineTo(-5, 0);
+
+    const hole = new THREE.Path();
+    hole.moveTo(-1.5, 0);
+    hole.lineTo(1.5, 0);
+    hole.lineTo(1.5, 3);
+    hole.lineTo(-1.5, 3);
+    hole.lineTo(-1.5, 0);
+    s.holes.push(hole);
+
+    return s;
+  }, []);
+
+  return (
+    <group>
+      {/* Windmill Body */}
+      <mesh position={[0, 0, -16]} castShadow receiveShadow>
+        <extrudeGeometry args={[shape, { depth: 2, bevelEnabled: false }]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      
+      {/* Windmill Blades */}
+      <WindmillBlade />
+    </group>
   );
 }
 

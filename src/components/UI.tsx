@@ -96,6 +96,53 @@ export function UI() {
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-8 z-10">
+      {/* Instructions & Power Meter (Top Center) */}
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 pointer-events-none w-full max-w-4xl z-20">
+        {gameState === 'course_intro' && (
+          <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
+            <span className="text-4xl font-black uppercase tracking-widest text-black">
+              Press switch to begin
+            </span>
+          </div>
+        )}
+
+        {gameState === 'player_turn_start' && (
+          <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
+            <span className="text-4xl font-black uppercase tracking-widest text-black">
+              Press switch to aim
+            </span>
+          </div>
+        )}
+
+        {gameState === 'aiming' && (
+          <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
+            <span className="text-4xl font-black uppercase tracking-widest text-black">
+              Press switch to lock aim
+            </span>
+          </div>
+        )}
+
+        {gameState === 'power' && (
+          <div className="w-full max-w-4xl flex flex-col items-center gap-4">
+            <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
+              <span className="text-4xl font-black uppercase tracking-widest text-black">
+                Press switch to shoot!
+              </span>
+            </div>
+            {/* Power Meter */}
+            <div className="w-full h-16 bg-gray-200 border-8 border-black rounded-full overflow-hidden relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              {/* Gradient background for power */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#00FF00] via-[#FFDD00] to-[#FF0055]" />
+              {/* Mask to show current power */}
+              <div 
+                className="absolute top-0 right-0 bottom-0 bg-black transition-all duration-75"
+                style={{ width: `${100 - powerLevel}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Top Bar: Player Info */}
       {players.length > 0 && gameState !== 'title' && gameState !== 'setup_players' && gameState !== 'setup_names' && (
         <div className="flex justify-between items-start">
@@ -668,53 +715,6 @@ export function UI() {
                 </div>
               </div>
             )}
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Bar: Instructions & Power Meter */}
-      <div className="w-full flex flex-col items-center gap-4 pointer-events-none">
-        {gameState === 'course_intro' && (
-          <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
-            <span className="text-4xl font-black uppercase tracking-widest text-black">
-              Press switch to begin
-            </span>
-          </div>
-        )}
-
-        {gameState === 'player_turn_start' && (
-          <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
-            <span className="text-4xl font-black uppercase tracking-widest text-black">
-              Press switch to aim
-            </span>
-          </div>
-        )}
-
-        {gameState === 'aiming' && (
-          <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
-            <span className="text-4xl font-black uppercase tracking-widest text-black">
-              Press switch to lock aim
-            </span>
-          </div>
-        )}
-
-        {gameState === 'power' && (
-          <div className="w-full max-w-4xl flex flex-col items-center gap-4">
-            <div className="px-8 py-4 bg-white border-4 border-black rounded-full shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-pulse">
-              <span className="text-4xl font-black uppercase tracking-widest text-black">
-                Press switch to shoot!
-              </span>
-            </div>
-            {/* Power Meter */}
-            <div className="w-full h-16 bg-gray-200 border-8 border-black rounded-full overflow-hidden relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-              {/* Gradient background for power */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#00FF00] via-[#FFDD00] to-[#FF0055]" />
-              {/* Mask to show current power */}
-              <div 
-                className="absolute top-0 right-0 bottom-0 bg-black transition-all duration-75"
-                style={{ width: `${100 - powerLevel}%` }}
-              />
-            </div>
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from 'react';
+import { Suspense, useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Physics } from '@react-three/cannon';
 import { Environment } from '@react-three/drei';
@@ -8,28 +8,46 @@ import { useStore, COURSES } from '../store';
 import * as THREE from 'three';
 
 function CameraFollow() {
-  const { ballPosition, currentCourse, strokesThisHole } = useStore();
+  const { ballPosition, currentCourse } = useStore();
   const course = COURSES[currentCourse];
+  const lookAtTarget = useRef(new THREE.Vector3(0, 0, 0));
 
   useFrame((state) => {
-    // Zoom out more on the first stroke
-    const zoomHeight = strokesThisHole === 0 ? 25 : 15;
-    const zoomBack = strokesThisHole === 0 ? 35 : 20;
-
-    // Target position
-    const targetPos = new THREE.Vector3(ballPosition[0], ballPosition[1] + zoomHeight, ballPosition[2] + zoomBack);
+    const holeVec = new THREE.Vector3(course.holePos[0], course.holePos[1], course.holePos[2]);
+    const ballVec = new THREE.Vector3(ballPosition[0], ballPosition[1], ballPosition[2]);
+    
+    // Calculate midpoint and distance between ball and hole
+    const mid = ballVec.clone().lerp(holeVec, 0.5);
+    const dist = ballVec.distanceTo(holeVec);
+    
+    // Dynamic camera positioning to ensure both ball and hole are in view
+    // Position relative to the ball, not the midpoint, so the ball is never cut off
+    // Lowered multipliers to keep the camera closer, especially on the first shot
+    const zoomHeight = Math.max(12, dist * 0.25);
+    const zoomBack = Math.max(18, dist * 0.5);
+    
+    // Position camera behind the ball (towards +Z)
+    const targetPos = new THREE.Vector3(
+      ballVec.x,
+      ballVec.y + zoomHeight,
+      ballVec.z + zoomBack
+    );
     
     // Smoothly interpolate camera position
     state.camera.position.lerp(targetPos, 0.05);
     
-    // Look at a point between the ball and the hole to keep both in view
-    const holeVec = new THREE.Vector3(course.holePos[0], course.holePos[1], course.holePos[2]);
-    const ballVec = new THREE.Vector3(ballPosition[0], ballPosition[1], ballPosition[2]);
+    // Smoothly interpolate the lookAt target
+    // Look slightly ahead of the midpoint towards the hole
+    const lookTarget = ballVec.clone().lerp(holeVec, 0.6);
     
-    // Look 70% towards the hole, 30% towards the ball
-    const lookAtPos = ballVec.clone().lerp(holeVec, 0.7);
+    // Initialize it on first frame if it's 0,0,0
+    if (lookAtTarget.current.lengthSq() === 0) {
+      lookAtTarget.current.copy(lookTarget);
+    } else {
+      lookAtTarget.current.lerp(lookTarget, 0.05);
+    }
     
-    state.camera.lookAt(lookAtPos);
+    state.camera.lookAt(lookAtTarget.current);
   });
 
   return null;
